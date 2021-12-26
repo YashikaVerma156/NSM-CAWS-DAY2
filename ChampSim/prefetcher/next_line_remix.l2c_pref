@@ -1,0 +1,116 @@
+/**
+ * Next-Line Prefetcher Remix ft. Golu
+ *
+ * Champsim Lab
+ * Computer Architecture Winter School (2021)
+ *
+ * Solution Author:
+ *     Debasish Das (debasish@cse.iitb.ac.in)
+ *     M.Tech. CSE (2020-22)
+ *     IIT Bombay
+ */
+
+#include "cache.h"
+#include "next_line_remix.h"
+
+
+/* Global variables */
+RequestHistoryBuffer rhb[NUM_CPUS];     /* Store the history of the block IDs */
+uint64_t prev_page_id[NUM_CPUS];        /* Store the IDs of the previous page */
+
+
+/* l2c_prefetcher_initialize -- The method that initializes the prefetcher during the start
+ *
+ * Use it to initialize anything that your implementation might need
+ * (which cannot be initialized at declaration time)
+ */
+void CACHE::l2c_prefetcher_initialize()
+{
+    for(int i=0; i<NUM_CPUS; i++)
+        prev_page_id[i] = -1;    /* Set it to the maximum 64-bit value */
+
+}
+
+
+/*
+ * l2c_prefetcher_operate -- The method that defines how the prefetcher operates. This
+ *                           is where you'll write the code
+ *
+ * Parameters of interest:
+ *  - addr:  The physical address of a demand request (load/store) to the L2C
+ *  - ip:    The instruction pointer that initiated the load/store
+ *
+ */
+uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint32_t metadata_in)
+{
+    uint64_t page_id = EXTRACT_PAGE_ID(addr);       /* Extract out the page ID of the current load/store */
+    uint32_t block_id = EXTRACT_BLOCK_ID(addr);     /* Extract out the block ID of the current load/store */
+
+    /* Note that a signed integer is being used here. This is to tackle a corner case when block_id = 0 */
+    /* and when there is a backward movement. In this case, pref_block_id would become -1. Had we not used a signed type, */
+    /* then pref_block_id would become (2^32 - 1) because of "wrap-around" effect of unsigned types */
+    int32_t prefetch_block_id = (int32_t) block_id;
+    uint64_t prefetch_addr;                         /* Where we'll store the prefetch address later on */
+
+    /* STEP-1: If the previous page ID differs from the current page ID */
+    /* We need to reset the buffer */
+    if(prev_page_id[cpu] != page_id)
+        rhb[cpu].reset();
+
+    prev_page_id[cpu] = page_id;                    /* Update the last page accessed */
+
+    /* STEP-2: Push the current block ID to the buffer */
+    rhb[cpu].append(block_id);
+
+    /* STEP-3: If the buffer is full, then we can *hopefully* send a prefetch */
+    if(rhb[cpu].is_full())
+    {
+        /* If we have forward movement, then we need to prefetch the next block */
+        if(rhb[cpu].has_forward_movement())
+            {
+		//write your code here
+	    }
+        /* Else it means that there is a backward movement. In this case we need to prefetch the previous block */
+        else
+            {
+		//write your code here
+	    }
+
+        /* Check if the prefetch block is a valid block, i.e. is still in range [0, 63] */
+        /* If yes, then we can send a prefetch request */
+        if(prefetch_block_id >= BLOCK_ID_MIN && prefetch_block_id <= BLOCK_ID_MAX) {
+
+            /* Prepare the prefetch address */
+            prefetch_addr = prepare_prefetch_address(page_id, prefetch_block_id);
+
+            /* Finally (whew!), send the prefetch request */
+            /* prefetch_line method is explained in the doc, please refer to it */
+            prefetch_line(ip, addr, prefetch_addr, FILL_L2, 0);
+        }
+
+    }
+
+    return metadata_in;
+}
+
+
+/* l2c_prefetcher_cache_fill -- The method which is called when a prefetch request (that was sent in the past)
+ *                              finishes, i.e. is brought into the L2C.
+ *
+ * For this lab, this method is not needed. So don't bother defining it.
+ */
+uint32_t CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_addr, uint32_t metadata_in)
+{
+    return metadata_in;
+}
+
+
+/* l2c_prefetcher_final_stats -- The method that is called after the simulation to print anything that you
+ *                               might want to print about the prefetcher (for ex. accuracy etc.)
+ *
+ * For this lab, this method is not needed. So don't bother defining it.
+ */
+void CACHE::l2c_prefetcher_final_stats()
+{
+
+}
